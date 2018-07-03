@@ -15,14 +15,10 @@ class conv3x3(object):
         mid = tf.nn.conv2d(input = x, filter = w1, strides = [1,1,stride,1], padding = 'VALID');
         fin = tf.nn.conv2d(input = mid, filter = w2, strides = [1,stride,1,1], padding = 'VALID');
         bef_bn = tf.nn.bias_add(fin, b);
-        mean = tf.reduce_mean(input_tensor=bef_bn, axis=[0], keep_dims=False);
-        var = tf.nn.moments(x=bef_bn, axes=[0], keep_dims=False);
         aft_bn,_,_ = tf.nn.fused_batch_norm(
             x=bef_bn, 
             scale=gamma, 
             offset=beta, 
-            #mean=mean, 
-            #variance=var, 
             is_training=True);
         self.out = aft_bn;
 
@@ -48,11 +44,13 @@ if SAVE_SESS is True:
     saver.save(sess,os.getcwd()+'/save/save.ckpt');
 
 
-convout = sess.run(layer3.out);
-convin = sess.run(img_decoded);
+convout = np.array(sess.run(layer3.out));
+convin = np.array(sess.run(img_decoded));
 print(convout);
 print(np.shape(convin));
 print(np.shape(convout));
-
+plt.figure(1);
+plt.hist(convout.flatten(),100);
+plt.figure(2);
 plt.imshow(convout[0]);
 plt.show();
