@@ -45,12 +45,14 @@ class conv1x1(object):
 
         
 def regen_feature(x,channel=None,depth=None):
-    pad = 3*depth;
+    pad = 3*(np.power(2,depth)-1);
     scale = tf.cast(np.power(2.,depth),tf.int32);
-    paddings = tf.constant([[0,0],[pad,pad],[pad,pad],[0,0]]);
-    map_small = conv1x1(x,channel,1,False);
-    map_large = tf.tile(map_small.out,[1,1,scale,1,scale,1]);
-    map_pad = tf.pad(map_large,paddings,"CONSTANT");
+    paddings = tf.constant([[0,0],[pad,pad],[pad,pad]]);
+    map_small = conv1x1(x,channel,1,True);
+    map_large_0 = tf.reshape(map_small.out,[-1,tf.shape(map_small.out)[1],1,tf.shape(map_small.out)[2],1]);
+    map_large_1 = tf.tile(map_large_0,[1,1,scale,1,scale]);
+    map_large_2 = tf.reshape(map_large_1,[-1,tf.multiply(tf.shape(map_small.out)[1],scale),tf.multiply(tf.shape(map_small.out)[1],scale)]);    
+    map_pad = tf.pad(map_large_2,paddings,"CONSTANT");
     return map_pad;
 
 files = ['res/' + s for s in sorted(os.listdir('res/'))];
@@ -60,11 +62,12 @@ img_decoded = tf.cast(tf.map_fn(fn = tf.image.decode_jpeg, elems = img_raw, dtyp
 layer1 = conv7x7(img_decoded,2,3,256,True);
 feature1 = regen_feature(layer1.out,256,1);
 layer2 = conv7x7(layer1.out,2,256,256,True);
-feature2 = regen_feature(layer2.out,256,1);
+feature2 = regen_feature(layer2.out,256,2);
 layer3 = conv7x7(layer2.out,2,256,256,True);
-feature3 = regen_feature(layer3.out,256,1);
+feature3 = regen_feature(layer3.out,256,3);
 layer4 = conv7x7(layer3.out,2,256,256,True);
-feature4 = regen_feature(layer4.out,256,1);
+feature4 = regen_feature(layer4.out,256,4);
+feature = (feature1+feature2+feature3+feature4)/4;
 
 layer_out = tf.reshape(layer4.out,[-1,7,7]);
 
@@ -81,15 +84,19 @@ if SAVE_SESS is True:
     
     saver.save(sess,os.getcwd()+'/save/save.ckpt');
 
-convout = np.array(sess.run(layer_out));
+convout = np.array(sess.run(feature));
 convin = np.array(sess.run(img_decoded));
 print(convout);
 print(np.shape(convin));
 print(np.shape(convout));
 print(np.shape(sess.run(layer1.out)));
+print(np.shape(sess.run(feature1)));
 print(np.shape(sess.run(layer2.out)));
+print(np.shape(sess.run(feature2)));
 print(np.shape(sess.run(layer3.out)));
+print(np.shape(sess.run(feature3)));
 print(np.shape(sess.run(layer4.out)));
+print(np.shape(sess.run(feature4)));
 plt.figure(1);
 plt.hist(convout.flatten(),100);
 plt.figure(2);
