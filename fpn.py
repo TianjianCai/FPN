@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 SAVE_SESS = True;
 SHOW_PLOT = False;
 KEEP_PROB = 0.75;
-LEARNING_RATE = 1e-2;
+LEARNING_RATE = 1e-3;
 ITERATION_NUM = 10;
 
 class conv7x7(object):
@@ -53,7 +53,8 @@ def regen_feature(x,channel=None,depth=None):
     scale = tf.cast(np.power(2.,depth),tf.int32);
     paddings = tf.constant([[0,0],[pad,pad],[pad,pad]]);
     map_small = conv1x1(x,channel,1,False,KEEP_PROB);
-    map_large_0 = tf.reshape(map_small.out,[-1,tf.shape(map_small.out)[1],1,tf.shape(map_small.out)[2],1]);
+    map_sig = tf.nn.sigmoid(map_small.out);
+    map_large_0 = tf.reshape(map_sig,[-1,tf.shape(map_small.out)[1],1,tf.shape(map_small.out)[2],1]);
     map_large_1 = tf.tile(map_large_0,[1,1,scale,1,scale]);
     map_large_2 = tf.reshape(map_large_1,[-1,tf.multiply(tf.shape(map_small.out)[1],scale),tf.multiply(tf.shape(map_small.out)[1],scale)]);    
     map_pad = tf.pad(map_large_2,paddings,"CONSTANT");
@@ -79,7 +80,7 @@ layer3 = conv7x7(layer2.out,2,256,256,True,KEEP_PROB);
 feature3 = regen_feature(layer3.out,256,3);
 layer4 = conv7x7(layer3.out,2,256,256,True,KEEP_PROB);
 feature4 = regen_feature(layer4.out,256,4);
-feature = feature1+feature2+feature3+feature4;
+feature = (feature1+feature2+feature3+feature4)/4;
 
 cost = tf.reduce_sum(tf.squared_difference(img_gt, feature));
 opt = tf.train.AdamOptimizer(LEARNING_RATE);
