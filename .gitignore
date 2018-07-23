@@ -1,5 +1,6 @@
 
 save/*
+.idea/*
 .pydevproject
 .project
 
